@@ -22,7 +22,10 @@ type Querier interface {
 	GetUserByID(ctx context.Context, id uuid.UUID) (GetUserByIDRow, error)
 	// Returns password_hash so the service can verify it. Not used anywhere else.
 	GetUserForLogin(ctx context.Context, email string) (GetUserForLoginRow, error)
+	IngestMetricPoints(ctx context.Context, arg []IngestMetricPointsParams) (int64, error)
 	ListAgentsByOrgID(ctx context.Context, orgID uuid.UUID) ([]ListAgentsByOrgIDRow, error)
+	ListMetricNames(ctx context.Context, agentID uuid.UUID) ([]string, error)
+	QueryMetricPoints(ctx context.Context, arg QueryMetricPointsParams) ([]MetricPoint, error)
 	RevokeAgent(ctx context.Context, arg RevokeAgentParams) error
 	SetFingerprintDrift(ctx context.Context, id uuid.UUID) error
 	SetFingerprintHash(ctx context.Context, arg SetFingerprintHashParams) error

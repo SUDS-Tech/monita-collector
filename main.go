@@ -12,6 +12,7 @@ import (
 	"github.com/SUDS-Tech/monita-collector/internal/config"
 	"github.com/SUDS-Tech/monita-collector/internal/db"
 	"github.com/SUDS-Tech/monita-collector/modules/agents"
+	"github.com/SUDS-Tech/monita-collector/modules/metrics"
 	"github.com/SUDS-Tech/monita-collector/modules/users"
 	"github.com/SUDS-Tech/monita-collector/shared/guards"
 )
@@ -37,7 +38,6 @@ func main() {
 	usersMod := users.New(pool, cfg.JWT.Secret, sessionAuth)
 	agentsMod := agents.New(pool, sessionAuth)
 	agentAuth := guards.NewAgentAuth(agentsMod.Service, nonceCache)
-	_ = agentAuth // passed to metrics/logs modules when implemented
 
 	app := bast.New(bast.Config{
 		Port:         cfg.Server.Port,
@@ -69,8 +69,11 @@ func main() {
 		middleware.Logger,
 	)
 
+	metricsMod := metrics.New(pool, sessionAuth, agentAuth)
+
 	app.Register(usersMod.Module)
 	app.Register(agentsMod.Module)
+	app.Register(metricsMod)
 
 	app.Listen()
 }
