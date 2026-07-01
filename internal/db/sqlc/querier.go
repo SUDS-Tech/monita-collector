@@ -12,12 +12,15 @@ import (
 
 type Querier interface {
 	CreateAgent(ctx context.Context, arg CreateAgentParams) (CreateAgentRow, error)
+	CreateAlertRule(ctx context.Context, arg CreateAlertRuleParams) (CreateAlertRuleRow, error)
 	CreateOrganization(ctx context.Context, arg CreateOrganizationParams) (CreateOrganizationRow, error)
 	CreateUser(ctx context.Context, arg CreateUserParams) (CreateUserRow, error)
 	DeleteAgent(ctx context.Context, arg DeleteAgentParams) error
+	DeleteAlertRule(ctx context.Context, arg DeleteAlertRuleParams) error
 	FreezeAgent(ctx context.Context, id uuid.UUID) error
 	GetAgentByID(ctx context.Context, arg GetAgentByIDParams) (GetAgentByIDRow, error)
 	GetAgentByTokenHash(ctx context.Context, tokenHash string) (GetAgentByTokenHashRow, error)
+	GetAlertRule(ctx context.Context, arg GetAlertRuleParams) (GetAlertRuleRow, error)
 	GetOrganizationByOwnerID(ctx context.Context, ownerID uuid.UUID) (GetOrganizationByOwnerIDRow, error)
 	GetUserByID(ctx context.Context, id uuid.UUID) (GetUserByIDRow, error)
 	// Returns password_hash so the service can verify it. Not used anywhere else.
@@ -25,14 +28,19 @@ type Querier interface {
 	IngestLogEntries(ctx context.Context, arg []IngestLogEntriesParams) (int64, error)
 	IngestMetricPoints(ctx context.Context, arg []IngestMetricPointsParams) (int64, error)
 	ListAgentsByOrgID(ctx context.Context, orgID uuid.UUID) ([]ListAgentsByOrgIDRow, error)
+	ListAlertEvents(ctx context.Context, arg ListAlertEventsParams) ([]AlertEvent, error)
+	ListAlertRules(ctx context.Context, orgID uuid.UUID) ([]ListAlertRulesRow, error)
+	ListFiringEvents(ctx context.Context, arg ListFiringEventsParams) ([]ListFiringEventsRow, error)
 	ListMetricNames(ctx context.Context, agentID uuid.UUID) ([]string, error)
 	QueryLogEntries(ctx context.Context, arg QueryLogEntriesParams) ([]QueryLogEntriesRow, error)
 	QueryMetricPoints(ctx context.Context, arg QueryMetricPointsParams) ([]MetricPoint, error)
+	ResolveAlertEvent(ctx context.Context, id uuid.UUID) error
 	RevokeAgent(ctx context.Context, arg RevokeAgentParams) error
 	SearchLogEntries(ctx context.Context, arg SearchLogEntriesParams) ([]SearchLogEntriesRow, error)
 	SetFingerprintDrift(ctx context.Context, id uuid.UUID) error
 	SetFingerprintHash(ctx context.Context, arg SetFingerprintHashParams) error
 	UpdateAgentLastSeen(ctx context.Context, id uuid.UUID) error
+	UpdateAlertRule(ctx context.Context, arg UpdateAlertRuleParams) (UpdateAlertRuleRow, error)
 }
 
 var _ Querier = (*Queries)(nil)

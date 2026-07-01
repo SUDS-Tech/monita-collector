@@ -17,7 +17,8 @@ func New(pool *pgxpool.Pool, sessionGuard bast.Guard) Module {
 	return Module{
 		Module: bast.Module{
 			Prefix:     "/agents",
-			Controller: newController(s, sessionGuard),
+			Guards:     []bast.Guard{sessionGuard},
+			Controller: newController(s),
 			Doc: bast.ModuleDoc{
 				Name:        "Agents",
 				Description: "Collector agents — creation, management, and token lifecycle.",

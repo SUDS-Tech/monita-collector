@@ -12,6 +12,7 @@ import (
 	"github.com/SUDS-Tech/monita-collector/internal/config"
 	"github.com/SUDS-Tech/monita-collector/internal/db"
 	"github.com/SUDS-Tech/monita-collector/modules/agents"
+	"github.com/SUDS-Tech/monita-collector/modules/alerts"
 	"github.com/SUDS-Tech/monita-collector/modules/logs"
 	"github.com/SUDS-Tech/monita-collector/modules/metrics"
 	"github.com/SUDS-Tech/monita-collector/modules/users"
@@ -74,10 +75,13 @@ func main() {
 
 	logsMod := logs.New(pool, sessionAuth, agentAuth)
 
+	alertsMod := alerts.New(pool, sessionAuth)
+
 	app.Register(usersMod.Module)
 	app.Register(agentsMod.Module)
 	app.Register(metricsMod)
 	app.Register(logsMod)
+	app.Register(alertsMod)
 
 	app.Listen()
 }

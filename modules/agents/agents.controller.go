@@ -9,40 +9,38 @@ import (
 )
 
 type controller struct {
-	svc          *Service
-	sessionGuard bast.Guard
+	svc *Service
 }
 
-func newController(svc *Service, sessionGuard bast.Guard) *controller {
-	return &controller{svc: svc, sessionGuard: sessionGuard}
+func newController(svc *Service) *controller {
+	return &controller{svc: svc}
 }
 
 func (c *controller) Routes() []bast.Route {
-	auth := bast.WithGuards(c.sessionGuard)
 	return []bast.Route{
-		bast.POST("", c.Create, auth, bast.WithDoc(bast.Doc{
+		bast.POST("", c.Create, bast.WithDoc(bast.Doc{
 			Summary: "Create a new agent",
 			Tags:    []string{"Agents"},
 			Body:    bast.Body[CreateAgentRequest](),
 			Returns: bast.Returns{201: bast.Body[CreateAgentResponse]()},
 		})),
-		bast.GET("", c.List, auth, bast.WithDoc(bast.Doc{
+		bast.GET("", c.List, bast.WithDoc(bast.Doc{
 			Summary: "List agents for the authenticated org",
 			Tags:    []string{"Agents"},
 			Returns: bast.Returns{200: bast.Body[[]AgentResponse]()},
 		})),
-		bast.GET("/:id", c.Get, auth, bast.WithDoc(bast.Doc{
+		bast.GET("/:id", c.Get, bast.WithDoc(bast.Doc{
 			Summary: "Get a single agent",
 			Tags:    []string{"Agents"},
 			Params:  []bast.Param{bast.PathParam("id", "Agent UUID")},
 			Returns: bast.Returns{200: bast.Body[AgentResponse]()},
 		})),
-		bast.POST("/:id/revoke", c.Revoke, auth, bast.WithDoc(bast.Doc{
+		bast.POST("/:id/revoke", c.Revoke, bast.WithDoc(bast.Doc{
 			Summary: "Revoke an agent token",
 			Tags:    []string{"Agents"},
 			Params:  []bast.Param{bast.PathParam("id", "Agent UUID")},
 		})),
-		bast.DELETE("/:id", c.Delete, auth, bast.WithDoc(bast.Doc{
+		bast.DELETE("/:id", c.Delete, bast.WithDoc(bast.Doc{
 			Summary: "Delete an agent",
 			Tags:    []string{"Agents"},
 			Params:  []bast.Param{bast.PathParam("id", "Agent UUID")},
