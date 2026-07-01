@@ -9,6 +9,44 @@ import (
 	"context"
 )
 
+// iteratorForIngestLogEntries implements pgx.CopyFromSource.
+type iteratorForIngestLogEntries struct {
+	rows                 []IngestLogEntriesParams
+	skippedFirstNextCall bool
+}
+
+func (r *iteratorForIngestLogEntries) Next() bool {
+	if len(r.rows) == 0 {
+		return false
+	}
+	if !r.skippedFirstNextCall {
+		r.skippedFirstNextCall = true
+		return true
+	}
+	r.rows = r.rows[1:]
+	return len(r.rows) > 0
+}
+
+func (r iteratorForIngestLogEntries) Values() ([]interface{}, error) {
+	return []interface{}{
+		r.rows[0].AgentID,
+		r.rows[0].Source,
+		r.rows[0].Level,
+		r.rows[0].Message,
+		r.rows[0].Count,
+		r.rows[0].FirstSeen,
+		r.rows[0].LastSeen,
+	}, nil
+}
+
+func (r iteratorForIngestLogEntries) Err() error {
+	return nil
+}
+
+func (q *Queries) IngestLogEntries(ctx context.Context, arg []IngestLogEntriesParams) (int64, error) {
+	return q.db.CopyFrom(ctx, []string{"log_entries"}, []string{"agent_id", "source", "level", "message", "count", "first_seen", "last_seen"}, &iteratorForIngestLogEntries{rows: arg})
+}
+
 // iteratorForIngestMetricPoints implements pgx.CopyFromSource.
 type iteratorForIngestMetricPoints struct {
 	rows                 []IngestMetricPointsParams
