@@ -3,8 +3,8 @@ package agents
 import "time"
 
 type CreateAgentRequest struct {
-	Name     string            `json:"name"`
-	Hostname string            `json:"hostname"`
+	Name     string            `json:"name"     validate:"required,min=1,max=100"`
+	Hostname string            `json:"hostname" validate:"required,min=1,max=255"`
 	Tags     map[string]string `json:"tags"`
 }
 

@@ -3,6 +3,8 @@ package main
 import (
 	"context"
 	"log"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"github.com/bastion-framework/bast"
@@ -17,7 +19,9 @@ import (
 	"github.com/SUDS-Tech/monita-collector/modules/metrics"
 	"github.com/SUDS-Tech/monita-collector/modules/stream"
 	"github.com/SUDS-Tech/monita-collector/modules/users"
+	appMiddleware "github.com/SUDS-Tech/monita-collector/shared/middleware"
 	"github.com/SUDS-Tech/monita-collector/shared/guards"
+	"github.com/SUDS-Tech/monita-collector/shared/validate"
 )
 
 func main() {
@@ -47,6 +51,7 @@ func main() {
 		ReadTimeout:  10 * time.Second,
 		WriteTimeout: 30 * time.Second,
 		IdleTimeout:  60 * time.Second,
+		Validator:    validate.New(),
 		Docs: &bast.DocsConfig{
 			Enabled:     true,
 			Path:        "/docs",
@@ -70,6 +75,8 @@ func main() {
 		middleware.RequestID,
 		middleware.Recover,
 		middleware.Logger,
+		// 100 req/s per IP, burst up to 200
+		appMiddleware.RateLimit(100, 200),
 	)
 
 	streamMod := stream.New(sessionAuth)
@@ -84,5 +91,25 @@ func main() {
 	app.Register(alertsMod)
 	app.Register(streamMod.Module)
 
-	app.Listen()
+	// Graceful shutdown: wait for SIGTERM or SIGINT, then drain in-flight requests.
+	sigCtx, stop := signal.NotifyContext(context.Background(), syscall.SIGTERM, syscall.SIGINT)
+	defer stop()
+
+	errc := make(chan error, 1)
+	go func() { errc <- app.Listen() }()
+
+	select {
+	case err := <-errc:
+		if err != nil {
+			log.Fatalf("server: %v", err)
+		}
+	case <-sigCtx.Done():
+		stop()
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+		if err := app.Shutdown(shutdownCtx); err != nil {
+			log.Printf("shutdown: %v", err)
+		}
+		<-errc
+	}
 }

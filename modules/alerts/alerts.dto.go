@@ -3,17 +3,17 @@ package alerts
 import "time"
 
 type CreateRuleRequest struct {
-	Name                 string           `json:"name"`
-	Target               string           `json:"target"`
-	Condition            map[string]any   `json:"condition"`
-	Severity             string           `json:"severity"`
+	Name                 string           `json:"name"                  validate:"required,min=1,max=200"`
+	Target               string           `json:"target"                validate:"required,oneof=metric log"`
+	Condition            map[string]any   `json:"condition"             validate:"required"`
+	Severity             string           `json:"severity"              validate:"required,oneof=low medium high critical"`
 	NotificationChannels []map[string]any `json:"notification_channels"`
 }
 
 type UpdateRuleRequest struct {
-	Name                 string           `json:"name"`
-	Condition            map[string]any   `json:"condition"`
-	Severity             string           `json:"severity"`
+	Name                 string           `json:"name"      validate:"required,min=1,max=200"`
+	Condition            map[string]any   `json:"condition" validate:"required"`
+	Severity             string           `json:"severity"  validate:"required,oneof=low medium high critical"`
 	NotificationChannels []map[string]any `json:"notification_channels"`
 	Enabled              bool             `json:"enabled"`
 }
