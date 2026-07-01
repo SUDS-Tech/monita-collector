@@ -11,12 +11,22 @@ import (
 )
 
 type Querier interface {
+	CreateAgent(ctx context.Context, arg CreateAgentParams) (CreateAgentRow, error)
 	CreateOrganization(ctx context.Context, arg CreateOrganizationParams) (CreateOrganizationRow, error)
 	CreateUser(ctx context.Context, arg CreateUserParams) (CreateUserRow, error)
+	DeleteAgent(ctx context.Context, arg DeleteAgentParams) error
+	FreezeAgent(ctx context.Context, id uuid.UUID) error
+	GetAgentByID(ctx context.Context, arg GetAgentByIDParams) (GetAgentByIDRow, error)
+	GetAgentByTokenHash(ctx context.Context, tokenHash string) (GetAgentByTokenHashRow, error)
 	GetOrganizationByOwnerID(ctx context.Context, ownerID uuid.UUID) (GetOrganizationByOwnerIDRow, error)
 	GetUserByID(ctx context.Context, id uuid.UUID) (GetUserByIDRow, error)
 	// Returns password_hash so the service can verify it. Not used anywhere else.
 	GetUserForLogin(ctx context.Context, email string) (GetUserForLoginRow, error)
+	ListAgentsByOrgID(ctx context.Context, orgID uuid.UUID) ([]ListAgentsByOrgIDRow, error)
+	RevokeAgent(ctx context.Context, arg RevokeAgentParams) error
+	SetFingerprintDrift(ctx context.Context, id uuid.UUID) error
+	SetFingerprintHash(ctx context.Context, arg SetFingerprintHashParams) error
+	UpdateAgentLastSeen(ctx context.Context, id uuid.UUID) error
 }
 
 var _ Querier = (*Queries)(nil)
