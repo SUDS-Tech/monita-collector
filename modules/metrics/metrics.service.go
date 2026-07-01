@@ -10,12 +10,17 @@ import (
 	dbsqlc "github.com/SUDS-Tech/monita-collector/internal/db/sqlc"
 )
 
-type Service struct {
-	repo *repo
+type metricPublisher interface {
+	PublishMetric(agentID, metricName string, value float64, labels map[string]string, recordedAt time.Time)
 }
 
-func newService(r *repo) *Service {
-	return &Service{repo: r}
+type Service struct {
+	repo      *repo
+	publisher metricPublisher
+}
+
+func newService(r *repo, publisher metricPublisher) *Service {
+	return &Service{repo: r, publisher: publisher}
 }
 
 func (s *Service) Ingest(ctx context.Context, agentID uuid.UUID, req IngestRequest) (int64, error) {
@@ -33,7 +38,16 @@ func (s *Service) Ingest(ctx context.Context, agentID uuid.UUID, req IngestReque
 			RecordedAt: p.RecordedAt,
 		}
 	}
-	return s.repo.ingest(ctx, rows)
+	n, err := s.repo.ingest(ctx, rows)
+	if err != nil {
+		return 0, err
+	}
+	if s.publisher != nil {
+		for _, p := range req.Points {
+			s.publisher.PublishMetric(agentID.String(), p.MetricName, p.Value, p.Labels, p.RecordedAt)
+		}
+	}
+	return n, nil
 }
 
 func (s *Service) Query(ctx context.Context, agentID uuid.UUID, metricName string, from, to time.Time, limit int32) ([]PointResponse, error) {

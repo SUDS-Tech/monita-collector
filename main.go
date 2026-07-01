@@ -15,6 +15,7 @@ import (
 	"github.com/SUDS-Tech/monita-collector/modules/alerts"
 	"github.com/SUDS-Tech/monita-collector/modules/logs"
 	"github.com/SUDS-Tech/monita-collector/modules/metrics"
+	"github.com/SUDS-Tech/monita-collector/modules/stream"
 	"github.com/SUDS-Tech/monita-collector/modules/users"
 	"github.com/SUDS-Tech/monita-collector/shared/guards"
 )
@@ -71,10 +72,9 @@ func main() {
 		middleware.Logger,
 	)
 
-	metricsMod := metrics.New(pool, sessionAuth, agentAuth)
-
-	logsMod := logs.New(pool, sessionAuth, agentAuth)
-
+	streamMod := stream.New(sessionAuth)
+	metricsMod := metrics.New(pool, sessionAuth, agentAuth, streamMod.Hub)
+	logsMod := logs.New(pool, sessionAuth, agentAuth, streamMod.Hub)
 	alertsMod := alerts.New(pool, sessionAuth)
 
 	app.Register(usersMod.Module)
@@ -82,6 +82,7 @@ func main() {
 	app.Register(metricsMod)
 	app.Register(logsMod)
 	app.Register(alertsMod)
+	app.Register(streamMod.Module)
 
 	app.Listen()
 }

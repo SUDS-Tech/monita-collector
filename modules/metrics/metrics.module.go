@@ -5,9 +5,9 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-func New(pool *pgxpool.Pool, sessionGuard, agentGuard bast.Guard) bast.Module {
+func New(pool *pgxpool.Pool, sessionGuard, agentGuard bast.Guard, publisher metricPublisher) bast.Module {
 	r := newRepo(pool)
-	s := newService(r)
+	s := newService(r, publisher)
 	return bast.Module{
 		Prefix:     "/metrics",
 		Controller: newController(s, sessionGuard, agentGuard),
