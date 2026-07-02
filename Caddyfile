@@ -1,0 +1,29 @@
+mapi.suds-tech.com {
+	# SSE endpoints need immediate flushing — no buffering
+	@sse path /stream/*
+	handle @sse {
+		reverse_proxy localhost:8080 {
+			flush_interval -1
+			transport http {
+				read_timeout  1h
+				write_timeout 1h
+			}
+		}
+	}
+
+	# All other routes
+	handle {
+		reverse_proxy localhost:8080 {
+			transport http {
+				read_timeout  30s
+				write_timeout 30s
+			}
+		}
+	}
+
+	# Access log
+	log {
+		output file /var/log/caddy/monita-collector.log
+		format json
+	}
+}
