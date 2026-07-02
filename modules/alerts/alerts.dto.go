@@ -4,16 +4,16 @@ import "time"
 
 type CreateRuleRequest struct {
 	Name                 string           `json:"name"                  validate:"required,min=1,max=200"`
-	Target               string           `json:"target"                validate:"required,oneof=metric log"`
+	Target               string           `json:"target"                validate:"required,oneof=metric log_pattern heartbeat security"`
 	Condition            map[string]any   `json:"condition"             validate:"required"`
-	Severity             string           `json:"severity"              validate:"required,oneof=low medium high critical"`
+	Severity             string           `json:"severity"              validate:"required,oneof=info warning critical"`
 	NotificationChannels []map[string]any `json:"notification_channels"`
 }
 
 type UpdateRuleRequest struct {
 	Name                 string           `json:"name"      validate:"required,min=1,max=200"`
 	Condition            map[string]any   `json:"condition" validate:"required"`
-	Severity             string           `json:"severity"  validate:"required,oneof=low medium high critical"`
+	Severity             string           `json:"severity"  validate:"required,oneof=info warning critical"`
 	NotificationChannels []map[string]any `json:"notification_channels"`
 	Enabled              bool             `json:"enabled"`
 }
