@@ -19,8 +19,9 @@ import (
 	"github.com/SUDS-Tech/monita-collector/modules/metrics"
 	"github.com/SUDS-Tech/monita-collector/modules/stream"
 	"github.com/SUDS-Tech/monita-collector/modules/users"
-	appMiddleware "github.com/SUDS-Tech/monita-collector/shared/middleware"
+	v1mod "github.com/SUDS-Tech/monita-collector/modules/v1"
 	"github.com/SUDS-Tech/monita-collector/shared/guards"
+	appMiddleware "github.com/SUDS-Tech/monita-collector/shared/middleware"
 	"github.com/SUDS-Tech/monita-collector/shared/validate"
 )
 
@@ -75,23 +76,23 @@ func main() {
 		middleware.RequestID,
 		middleware.Recover,
 		middleware.Logger,
-		// 100 req/s per IP, burst up to 200
 		appMiddleware.RateLimit(100, 200),
 	)
 
 	streamMod := stream.New(sessionAuth)
 	metricsMod := metrics.New(pool, sessionAuth, agentAuth, streamMod.Hub)
-	logsMod := logs.New(pool, sessionAuth, agentAuth, streamMod.Hub)
+	logsSvc := logs.New(pool, sessionAuth, agentAuth, streamMod.Hub)
 	alertsMod := alerts.New(pool, sessionAuth)
 
 	app.Register(usersMod.Module)
 	app.Register(agentsMod.Module)
-	app.Register(metricsMod)
-	app.Register(logsMod)
+	app.Register(metricsMod.Module)
+	app.Register(logsSvc.Module)
 	app.Register(alertsMod)
 	app.Register(streamMod.Module)
+	app.Register(v1mod.New(metricsMod.Service, logsSvc.Service, agentsMod.Service, agentsMod.Service, agentAuth))
 
-	// Graceful shutdown: wait for SIGTERM or SIGINT, then drain in-flight requests.
+	// Graceful shutdown on SIGTERM / SIGINT.
 	sigCtx, stop := signal.NotifyContext(context.Background(), syscall.SIGTERM, syscall.SIGINT)
 	defer stop()
 

@@ -98,15 +98,34 @@ func (s *Service) FindByTokenHash(ctx context.Context, tokenHash string) (*guard
 		fp = *row.FingerprintHash
 	}
 	return &guards.AgentInfo{
-		ID:             row.ID.String(),
-		OrgID:          row.OrgID.String(),
-		SigningKeyHash:  row.SigningKeyHash,
-		FingerprintHash: fp,
-		HasFingerprint: row.FingerprintHash != nil,
-		Frozen:         row.Frozen,
-		Revoked:        row.Revoked,
-		ExpiresAt:      row.ExpiresAt,
+		ID:               row.ID.String(),
+		OrgID:            row.OrgID.String(),
+		SigningKeyHash:   row.SigningKeyHash,
+		FingerprintHash:  fp,
+		RotationRequired: row.RotationRequired,
+		Frozen:           row.Frozen,
+		Revoked:          row.Revoked,
+		ExpiresAt:        row.ExpiresAt,
 	}, nil
+}
+
+func (s *Service) RotateToken(ctx context.Context, agentID string) (token, signingKey string, err error) {
+	id, err := uuid.Parse(agentID)
+	if err != nil {
+		return "", "", err
+	}
+	rawToken, err := generateSecret()
+	if err != nil {
+		return "", "", err
+	}
+	newKey, err := generateSecret()
+	if err != nil {
+		return "", "", err
+	}
+	if err := s.repo.rotateAgentToken(ctx, id, hashSecret(rawToken), newKey); err != nil {
+		return "", "", err
+	}
+	return rawToken, newKey, nil
 }
 
 func (s *Service) UpdateLastSeen(ctx context.Context, agentID string) error {

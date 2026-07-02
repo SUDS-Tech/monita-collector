@@ -17,23 +17,20 @@ import (
 // AgentInfo is set in request context by AgentAuthGuard on successful auth.
 // Key: "agent". Handlers read it via ctx.MustGet("agent").(*guards.AgentInfo).
 type AgentInfo struct {
-	ID             string
-	OrgID          string
-	SigningKeyHash  string
-	FingerprintHash string
-	HasFingerprint bool
-	Frozen         bool
-	Revoked        bool
-	ExpiresAt      time.Time
+	ID               string
+	OrgID            string
+	SigningKeyHash   string // raw signing key (used as HMAC key)
+	FingerprintHash  string // stored hash — included in HMAC signed material
+	RotationRequired bool
+	Frozen           bool
+	Revoked          bool
+	ExpiresAt        time.Time
 }
 
 // AgentResolver is implemented by agents.Service (duck typing).
 type AgentResolver interface {
 	FindByTokenHash(ctx context.Context, tokenHash string) (*AgentInfo, error)
 	UpdateLastSeen(ctx context.Context, agentID string) error
-	FreezeAgent(ctx context.Context, agentID string) error
-	SetFingerprintDrift(ctx context.Context, agentID string) error
-	SetFingerprintHash(ctx context.Context, agentID, hash string) error
 }
 
 type AgentAuthGuard struct {
@@ -103,30 +100,18 @@ func (g *AgentAuthGuard) Check(ctx *bast.Ctx) error {
 	_ = g.nonce.Record(ctx.Context(), agent.ID, nonce, 120*time.Second)
 
 	// 5. HMAC-SHA256 signature verification
-	// message = timestamp + "\n" + nonce + "\n" + fingerprint + "\n" + body_hash
-	fp := ctx.Header("X-Fingerprint")
+	// signed_material = timestamp + "." + nonce + "." + fingerprint_hash + "." + sha256(body)
+	// fingerprint_hash is the stored value — mismatch causes HMAC failure implicitly.
 	rawBody, _ := ctx.RawBody()
 	bodyHash := sha256Hex(string(rawBody))
-	message := tsHeader + "\n" + nonce + "\n" + fp + "\n" + bodyHash
+	message := tsHeader + "." + nonce + "." + agent.FingerprintHash + "." + bodyHash
 
 	expected := hmacHex([]byte(agent.SigningKeyHash), message)
 	if !hmac.Equal([]byte(ctx.Header("X-Signature")), []byte(expected)) {
 		return bast.ErrUnauthorized(apperr.CodeSignatureMismatch, "invalid signature")
 	}
 
-	// 6. Fingerprint tier
-	if fp != "" {
-		fpHash := sha256Hex(fp)
-		if !agent.HasFingerprint {
-			_ = g.agents.SetFingerprintHash(ctx.Context(), agent.ID, fpHash)
-		} else if fpHash != agent.FingerprintHash {
-			_ = g.agents.SetFingerprintDrift(ctx.Context(), agent.ID)
-			_ = g.agents.FreezeAgent(ctx.Context(), agent.ID)
-			return bast.ErrUnauthorized(apperr.CodeFingerprintMismatch, "fingerprint mismatch — agent frozen")
-		}
-	}
-
-	// 7. Update last seen and set context
+	// 6. Update last seen and set context
 	_ = g.agents.UpdateLastSeen(ctx.Context(), agent.ID)
 	ctx.Set("agent", agent)
 	return nil

@@ -12,8 +12,11 @@ SELECT id, name, hostname, tags, frozen, revoked, rotation_required, expires_at,
 FROM agents WHERE org_id = $1 ORDER BY created_at DESC;
 
 -- name: GetAgentByTokenHash :one
-SELECT id, org_id, signing_key_hash, fingerprint_hash, fingerprint_drift, frozen, revoked, expires_at
+SELECT id, org_id, signing_key_hash, fingerprint_hash, fingerprint_drift, frozen, revoked, rotation_required, expires_at
 FROM agents WHERE token_hash = $1 LIMIT 1;
+
+-- name: RotateAgentToken :exec
+UPDATE agents SET token_hash = $2, signing_key_hash = $3, rotation_required = false WHERE id = $1;
 
 -- name: UpdateAgentLastSeen :exec
 UPDATE agents SET last_seen_at = now() WHERE id = $1;

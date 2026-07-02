@@ -60,6 +60,10 @@ func (r *repo) deleteAgent(ctx context.Context, id, orgID uuid.UUID) error {
 	return r.q.DeleteAgent(ctx, dbsqlc.DeleteAgentParams{ID: id, OrgID: orgID})
 }
 
+func (r *repo) rotateAgentToken(ctx context.Context, id uuid.UUID, tokenHash, signingKeyHash string) error {
+	return r.q.RotateAgentToken(ctx, id, tokenHash, signingKeyHash)
+}
+
 func tagsToMap(raw []byte) map[string]string {
 	m := map[string]string{}
 	if len(raw) > 0 {

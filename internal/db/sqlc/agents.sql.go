@@ -134,7 +134,7 @@ func (q *Queries) GetAgentByID(ctx context.Context, arg GetAgentByIDParams) (Get
 }
 
 const getAgentByTokenHash = `-- name: GetAgentByTokenHash :one
-SELECT id, org_id, signing_key_hash, fingerprint_hash, fingerprint_drift, frozen, revoked, expires_at
+SELECT id, org_id, signing_key_hash, fingerprint_hash, fingerprint_drift, frozen, revoked, rotation_required, expires_at
 FROM agents WHERE token_hash = $1 LIMIT 1
 `
 
@@ -146,6 +146,7 @@ type GetAgentByTokenHashRow struct {
 	FingerprintDrift bool      `json:"fingerprint_drift"`
 	Frozen           bool      `json:"frozen"`
 	Revoked          bool      `json:"revoked"`
+	RotationRequired bool      `json:"rotation_required"`
 	ExpiresAt        time.Time `json:"expires_at"`
 }
 
@@ -160,9 +161,19 @@ func (q *Queries) GetAgentByTokenHash(ctx context.Context, tokenHash string) (Ge
 		&i.FingerprintDrift,
 		&i.Frozen,
 		&i.Revoked,
+		&i.RotationRequired,
 		&i.ExpiresAt,
 	)
 	return i, err
+}
+
+const rotateAgentToken = `-- name: RotateAgentToken :exec
+UPDATE agents SET token_hash = $2, signing_key_hash = $3, rotation_required = false WHERE id = $1
+`
+
+func (q *Queries) RotateAgentToken(ctx context.Context, id uuid.UUID, tokenHash, signingKeyHash string) error {
+	_, err := q.db.Exec(ctx, rotateAgentToken, id, tokenHash, signingKeyHash)
+	return err
 }
 
 const listAgentsByOrgID = `-- name: ListAgentsByOrgID :many
